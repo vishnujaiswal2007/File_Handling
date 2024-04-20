@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require("path");
+const formatDate = require("./dateFormat");
+const readAndAddText = require("./readAndUpdateFile")
+const removeExtension =  require("./removeExtension");
 
 function findFile(folderPath, targetName) {
+
+  const fileExtensions =[ ".txt", ".RES"]; 
+
   return new Promise((resolve, reject) => {
     fs.readdir(folderPath, (err, files) => {
       if (err) {
@@ -18,8 +24,16 @@ function findFile(folderPath, targetName) {
 
         if (stats.isDirectory()) {
           promises.push(findFile(filePath, targetName)); // Recursive call for subdirectories
-        } else if (stats.isFile() && file === targetName) {
-          matchingFiles.push(filePath); // Add matching file path
+        } else if (stats.isFile() && targetName.test(file)) {
+
+          const modifiedDate = formatDate(new Date(stats.mtimeMs));
+          console.log(`File name: ${file}  Modified date: ${modifiedDate}`);
+
+          const createNewText = `,"${removeExtension(file,fileExtensions)}","${modifiedDate}"`
+
+          readAndAddText(filePath, createNewText)
+
+          // matchingFiles.push(filePath); // Add matching file path
         }
       });
 
@@ -33,14 +47,17 @@ function findFile(folderPath, targetName) {
   });
 }
 
-// Example usage
-const folderPath = './folder';
-const targetName = 'chotu.txt'; // Replace with your target file name
+async function findFiles(folderPath, targetName,fileExtension) {
 
-findFile(folderPath, targetName)
-  .then(files => {
-    console.log('Matching files:', files);
-  })
-  .catch(err => {
-    console.error('Error:', err);
-  });
+  try {
+    const files = await findFile(folderPath, targetName,fileExtension)
+    console.log(files)
+    return files;
+
+  } catch (e) {
+
+    console.log("File Searching error: ", e)
+  }
+}
+
+module.exports = findFiles;
